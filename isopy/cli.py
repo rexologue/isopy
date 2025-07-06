@@ -3,7 +3,7 @@
 isopy – install isolated CPython builds & integrate them with Poetry
 """
 
-import argparse, json, os, re, shutil, subprocess, sys, tarfile, tempfile
+import argparse, json, os, re, shutil, subprocess, sys, tarfile, tempfile, time, urllib.error
 from pathlib import Path
 from urllib.request import urlopen, Request
 
@@ -17,8 +17,30 @@ _branch_rx    = re.compile(r"^\d+\.\d+$")            # e.g. 3.12
 _semver_rx    = re.compile(r"^\d+\.\d+\.\d+$")       # e.g. 3.12.10
 
 # --------------------------------------------------------------------------- helpers
-def _github_json():
-    return json.load(urlopen(REPO_API))
+def _github_json(max_retries: int = 4, delay: int = 2):
+    """
+    Читает GitHub Releases → JSON.
+    • до 4 попыток
+    • таймаут 15 с
+    • поддержка $GITHUB_TOKEN (обходит rate-limit 60 req/h)
+    """
+    hdrs = {"User-Agent": "isopy/0.1.0"}
+    token = os.getenv("GITHUB_TOKEN")
+    if token:
+        hdrs["Authorization"] = f"Bearer {token}"
+
+    req = Request(REPO_API, headers=hdrs)
+    for attempt in range(1, max_retries + 1):
+        try:
+            with urlopen(req, timeout=15) as resp:
+                return json.load(resp)
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            if attempt == max_retries:
+                sys.exit(
+                    f"❌  GitHub API unreachable ({e}). "
+                    "Check internet / proxy / $GITHUB_TOKEN and retry."
+                )
+            time.sleep(delay * attempt)
 
 def _all_versions():
     """Return {version: url} for all assets matching our arch."""
