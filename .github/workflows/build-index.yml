@@ -1,3 +1,4 @@
+# .github/workflows/build-index.yml
 name: Build index.json
 
 on:
@@ -6,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  
+  contents: write          # нужно, чтобы пушить index.json
 
 jobs:
   build:
@@ -18,18 +19,10 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
 
-      - name: Install deps
-        run: |
-          python -m pip install -U requests backoff
-
-      - name: Build index.json
+      - name: Build index.json   # зависимостей больше не нужно
         run: python scripts/build-index.py
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   
 
-      - name: Commit & push (if changed)
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore(index): auto-refresh"
           file_pattern: index.json
-
+          commit_message: "chore(index): refresh from manifest"
