@@ -1,18 +1,28 @@
 # .github/workflows/build-index.yml
+name: Build index.json
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
 permissions:
-  contents: write                # оставляем
+  contents: write          # нужно, чтобы пушить index.json
 
-steps:
-  - uses: actions/checkout@v4
-    with: { fetch-depth: 0 }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with: { fetch-depth: 0 }
 
-  - uses: actions/setup-python@v5
-    with: { python-version: '3.11' }
+    - uses: actions/setup-python@v5
+      with: { python-version: '3.11' }
 
-  - name: Build index.json
-    run: python scripts/build-index.py        # ← зависимостей нет
+    - name: Build index.json
+      run: python scripts/build-index.py        # ← зависимостей нет
 
-  - uses: stefanzweifel/git-auto-commit-action@v5
-    with:
-      file_pattern: index.json
-      commit_message: "chore(index): refresh from manifest"
+    - uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        file_pattern: index.json
+        commit_message: "chore(index): refresh from manifest"
