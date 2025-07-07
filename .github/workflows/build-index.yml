@@ -1,0 +1,39 @@
+name: Build index.json
+
+on:
+  workflow_dispatch:          # запуск вручную из UI
+  schedule:
+    - cron: '0 3 * * *'       # каждый день в 03:00 UTC (настройте как нужно)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # нужен полный clone, чтобы git commit-ить
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: python -m pip install --upgrade requests
+
+      - name: Build index.json
+        run: python scripts/build-index.py
+
+      # если index.json не изменился – шаг auto-commit пропустит
+      - name: Commit & push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(index): refresh $(date -u '+%Y-%m-%d')"
+          branch: main
+          commit_user_name: isopy-bot
+          commit_user_email: isopy-bot@example.com
+          file_pattern: index.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.ISOPY_BOT_PAT }}
